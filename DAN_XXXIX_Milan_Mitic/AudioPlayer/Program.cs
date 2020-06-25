@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace AudioPlayer
 {
@@ -14,6 +13,7 @@ namespace AudioPlayer
         static AutoResetEvent menuView = new AutoResetEvent(false);
         static AutoResetEvent songStart = new AutoResetEvent(false);
         static AutoResetEvent songPlayingE = new AutoResetEvent(false);
+        static AutoResetEvent commercialsStart = new AutoResetEvent(false);
         static bool playerRunning = false;
         static bool songPlayingB = false;
         static int hoursRunning;
@@ -26,6 +26,10 @@ namespace AudioPlayer
         {
             Console.WriteLine("\tAUDIO PLAYER\n");
 
+            //reset to false so program can run multiple times
+            playerRunning = false;
+            songPlayingB = false;
+
             bool menu = true;
             while (menu == true)
             {
@@ -33,7 +37,7 @@ namespace AudioPlayer
                 {
                     menuView.WaitOne();
                 }
-                 if (songPlayingB == true)
+                if (songPlayingB == true)
                 {
                     songPlayingE.WaitOne();
                 }
@@ -45,7 +49,7 @@ namespace AudioPlayer
                 Console.WriteLine("4. Exit");
 
                 string options = Console.ReadLine();
-               
+
                 switch (options)
                 {
                     case "1":
@@ -76,7 +80,7 @@ namespace AudioPlayer
                         break;
 
                     case "2":
-                        ViewAllSongs();
+                        ViewAll();
                         break;
 
                     case "3":
@@ -86,19 +90,9 @@ namespace AudioPlayer
                         Thread player = new Thread(() => AudioPlayer(songNumber));
                         Thread songPlaying = new Thread(() => PlaySong());
                         Thread commercials = new Thread(() => PlayCommercials());
-                        Task stop = new Task(() =>
-                        {
-                            if (Console.ReadKey(true).Key == ConsoleKey.Spacebar)
-                            {
-                                player.Abort();
-                                songPlaying.Abort();
-                                commercials.Abort();
-                            }
-                        });
-                        stop.Start();
 
-                        commercials.IsBackground = true;
                         player.Start();
+                        commercials.IsBackground = true;
                         songPlaying.Start();
                         commercials.Start();
                         break;
@@ -116,6 +110,7 @@ namespace AudioPlayer
 
         private static void PlayCommercials()
         {
+            commercialsStart.WaitOne();
             string[] commercials = new string[5];
             try
             {
@@ -135,7 +130,11 @@ namespace AudioPlayer
             while (playing == true)
             {
                 Thread.Sleep(200);
-                Console.WriteLine(commercials[random.Next(0,4)]);
+                Console.WriteLine(commercials[random.Next(0, 4)]);
+                if (Console.KeyAvailable)
+                {
+                    break;
+                }
             }
         }
 
@@ -150,6 +149,10 @@ namespace AudioPlayer
             {
                 Thread.Sleep(1000);
                 Console.WriteLine("Song is playing. . .");
+                if (Console.KeyAvailable)
+                {
+                    break;
+                }
             }
             Console.WriteLine("\nSong ended.");
             playing = false;
@@ -163,6 +166,7 @@ namespace AudioPlayer
                 string song = songs[Convert.ToInt32(songNumber)];
                 Console.WriteLine("\nThe time of song starts playing is " + DateTime.Now.ToString());
                 Console.WriteLine("Song name is: " + song);
+                Console.WriteLine("\n\tPress any key twice to stop song playing.");
                 songPlayingB = true;
 
                 // getting song duration from a string
@@ -176,14 +180,16 @@ namespace AudioPlayer
                 secondsRunning = Convert.ToInt32(seconds);
 
                 songStart.Set();
+                commercialsStart.Set();
             }
             catch
             {
                 Console.WriteLine("\nSong with number " + songNumber + " does not exist.");
             }
+
             menuView.Set();
         }
-
+        
         /// <summary>
         /// Appends the string to a txt file.
         /// </summary>
@@ -232,6 +238,41 @@ namespace AudioPlayer
         public static void ViewAllSongs()
         {
             playerRunning = true;
+            songs.Clear();
+            int i = songs.Keys.Count;
+            try
+            {
+                using (StreamReader sr = new StreamReader("../../Music.txt"))
+                {
+                    string line;
+                    while ((line = sr.ReadLine()) != null)
+                    {
+
+                        while (true)
+                        {
+                            try
+                            {
+                                i++;
+                                songs.Add(i, line);
+                                break;
+                            }
+                            catch
+                            {
+                                continue;
+                            }
+                        }
+                        Console.WriteLine(i + ". " + line);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("The file could not be read:");
+                Console.WriteLine(e.Message);
+            }
+        }
+        public static void ViewAll()
+        {
             songs.Clear();
             int i = songs.Keys.Count;
             try
