@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,6 +26,29 @@ namespace AudioPlayer
                 switch (options)
                 {
                     case "1":
+                        string songAuthor = "";
+                        while (string.IsNullOrEmpty(songAuthor))
+                        {
+                            Console.WriteLine("\nAuthor's name:");
+                            songAuthor = Console.ReadLine();
+                        }
+                        string songName = "";
+                        while (string.IsNullOrEmpty(songName))
+                        {
+                            Console.WriteLine("\nSong name:");
+                            songName = Console.ReadLine();
+                        }
+                        Console.WriteLine("\nSong duration in hours:");
+                        string songDurationHours = EnterDuration();
+
+                        Console.WriteLine("\nSong duration in minutes:");
+                        string songDurationMinutes = EnterDuration();
+
+                        Console.WriteLine("\nSong duration in seconds:");
+                        string songDurationSeconds = EnterDuration();
+                       
+                        AddSong(songAuthor + ": " + songName + " " + songDurationHours + ":" + songDurationMinutes + ":" + songDurationSeconds);
+
                         break;
 
                     case "2":
@@ -43,6 +67,40 @@ namespace AudioPlayer
                         break;
                 }
             }
+        }
+
+        public static void AddSong(string song)
+        {
+            try
+            {
+                using (StreamWriter sw = new StreamWriter(@"..\..\Music.txt", true))
+                {
+                    sw.WriteLine(song);
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        public static string EnterDuration()
+        {
+            string songDuration = "aa";
+            while (!char.IsDigit(songDuration.ElementAt(0)) || !char.IsDigit(songDuration.ElementAt(1))
+                         || Convert.ToInt32(songDuration) > 60 || songDuration.Length != 2)
+            {
+                Console.WriteLine("Time:");
+                songDuration = Console.ReadLine();
+                if (string.IsNullOrEmpty(songDuration))
+                {
+                    songDuration = "00";
+                }
+                else if (songDuration.Length == 1)
+                {
+                    songDuration = "0" + songDuration;
+                }
+            }
+            return songDuration;
         }
     }
 }
