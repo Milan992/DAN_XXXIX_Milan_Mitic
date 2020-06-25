@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -9,8 +10,14 @@ namespace AudioPlayer
     class Program
     {
         static Dictionary<int, string> songs = new Dictionary<int, string>();
-        static AutoResetEvent are = new AutoResetEvent(false);
+        static AutoResetEvent menuView = new AutoResetEvent(false);
+        static AutoResetEvent songStart = new AutoResetEvent(false);
+        static AutoResetEvent songPlayingE = new AutoResetEvent(false);
         static bool playerRunning = false;
+        static bool songPlaying = false;
+        static int hoursRunning;
+        static int minutesRunning;
+        static int secondsRunning;
 
         static void Main(string[] args)
         {
@@ -21,7 +28,11 @@ namespace AudioPlayer
             {
                 if (playerRunning == true)
                 {
-                    are.WaitOne();
+                    menuView.WaitOne();
+                }
+                 if (songPlaying == true)
+                {
+                    songPlayingE.WaitOne();
                 }
 
                 //start menu
@@ -31,7 +42,7 @@ namespace AudioPlayer
                 Console.WriteLine("4. Exit");
 
                 string options = Console.ReadLine();
-
+               
                 switch (options)
                 {
                     case "1":
@@ -69,7 +80,9 @@ namespace AudioPlayer
                         ViewAllSongs();
                         string songNumber = Console.ReadLine();
                         Thread player = new Thread(() => AudioPlayer(songNumber));
+                        Thread songPlaying = new Thread(() => PlaySong());
                         player.Start();
+                        songPlaying.Start();
                         break;
 
                     case "4":
@@ -83,6 +96,22 @@ namespace AudioPlayer
             }
         }
 
+        public static void PlaySong()
+        {
+            songStart.WaitOne();
+
+            TimeSpan ts = new TimeSpan(hoursRunning, minutesRunning, secondsRunning);
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            while (ts.TotalMilliseconds > s.ElapsedMilliseconds)
+            {
+                Thread.Sleep(200);
+                Console.WriteLine("Song is playing. . .");
+            }
+            Console.WriteLine("\nSong ended.");
+            songPlayingE.Set();
+        }
+
         public static void AudioPlayer(string songNumber)
         {
             try
@@ -90,12 +119,25 @@ namespace AudioPlayer
                 string song = songs[Convert.ToInt32(songNumber)];
                 Console.WriteLine("\nThe time of song starts playing is " + DateTime.Now.ToString());
                 Console.WriteLine("Song name is: " + song);
+                songPlaying = true;
+
+                // getting song duration from a string
+                char[] songLetters = song.ToCharArray();
+                string hours = Convert.ToString(songLetters[songLetters.Length - 8]) + Convert.ToString(songLetters[songLetters.Length - 7]);
+                string minutes = Convert.ToString(songLetters[songLetters.Length - 5]) + Convert.ToString(songLetters[songLetters.Length - 4]);
+                string seconds = Convert.ToString(songLetters[songLetters.Length - 2]) + Convert.ToString(songLetters[songLetters.Length - 1]);
+
+                hoursRunning = Convert.ToInt32(hours);
+                minutesRunning = Convert.ToInt32(minutes);
+                secondsRunning = Convert.ToInt32(seconds);
+
+                songStart.Set();
             }
             catch
             {
                 Console.WriteLine("\nSong with number " + songNumber + " does not exist.");
             }
-            are.Set();
+            menuView.Set();
         }
 
         /// <summary>
