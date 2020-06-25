@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace AudioPlayer
 {
@@ -14,7 +15,7 @@ namespace AudioPlayer
         static AutoResetEvent songStart = new AutoResetEvent(false);
         static AutoResetEvent songPlayingE = new AutoResetEvent(false);
         static bool playerRunning = false;
-        static bool songPlaying = false;
+        static bool songPlayingB = false;
         static int hoursRunning;
         static int minutesRunning;
         static int secondsRunning;
@@ -32,7 +33,7 @@ namespace AudioPlayer
                 {
                     menuView.WaitOne();
                 }
-                 if (songPlaying == true)
+                 if (songPlayingB == true)
                 {
                     songPlayingE.WaitOne();
                 }
@@ -85,6 +86,17 @@ namespace AudioPlayer
                         Thread player = new Thread(() => AudioPlayer(songNumber));
                         Thread songPlaying = new Thread(() => PlaySong());
                         Thread commercials = new Thread(() => PlayCommercials());
+                        Task stop = new Task(() =>
+                        {
+                            if (Console.ReadKey(true).Key == ConsoleKey.Spacebar)
+                            {
+                                player.Abort();
+                                songPlaying.Abort();
+                                commercials.Abort();
+                            }
+                        });
+                        stop.Start();
+
                         commercials.IsBackground = true;
                         player.Start();
                         songPlaying.Start();
@@ -122,6 +134,7 @@ namespace AudioPlayer
 
             while (playing == true)
             {
+                Thread.Sleep(200);
                 Console.WriteLine(commercials[random.Next(0,4)]);
             }
         }
@@ -150,7 +163,7 @@ namespace AudioPlayer
                 string song = songs[Convert.ToInt32(songNumber)];
                 Console.WriteLine("\nThe time of song starts playing is " + DateTime.Now.ToString());
                 Console.WriteLine("Song name is: " + song);
-                songPlaying = true;
+                songPlayingB = true;
 
                 // getting song duration from a string
                 char[] songLetters = song.ToCharArray();
