@@ -18,6 +18,8 @@ namespace AudioPlayer
         static int hoursRunning;
         static int minutesRunning;
         static int secondsRunning;
+        static Random random = new Random();
+        static bool playing = true;
 
         static void Main(string[] args)
         {
@@ -77,12 +79,16 @@ namespace AudioPlayer
                         break;
 
                     case "3":
+                        playing = true;
                         ViewAllSongs();
                         string songNumber = Console.ReadLine();
                         Thread player = new Thread(() => AudioPlayer(songNumber));
                         Thread songPlaying = new Thread(() => PlaySong());
+                        Thread commercials = new Thread(() => PlayCommercials());
+                        commercials.IsBackground = true;
                         player.Start();
                         songPlaying.Start();
+                        commercials.Start();
                         break;
 
                     case "4":
@@ -96,6 +102,30 @@ namespace AudioPlayer
             }
         }
 
+        private static void PlayCommercials()
+        {
+            string[] commercials = new string[5];
+            try
+            {
+                using (StreamReader sr = new StreamReader("../../Commercials.txt"))
+                {
+                    string line;
+                    int i = 0;
+                    while ((line = sr.ReadLine()) != null)
+                    {
+                        commercials[i] = line;
+                        i++;
+                    }
+                }
+            }
+            catch { }
+
+            while (playing == true)
+            {
+                Console.WriteLine(commercials[random.Next(0,4)]);
+            }
+        }
+
         public static void PlaySong()
         {
             songStart.WaitOne();
@@ -105,10 +135,11 @@ namespace AudioPlayer
             s.Start();
             while (ts.TotalMilliseconds > s.ElapsedMilliseconds)
             {
-                Thread.Sleep(200);
+                Thread.Sleep(1000);
                 Console.WriteLine("Song is playing. . .");
             }
             Console.WriteLine("\nSong ended.");
+            playing = false;
             songPlayingE.Set();
         }
 
